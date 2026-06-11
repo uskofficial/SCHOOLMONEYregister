@@ -1,1 +1,257 @@
-# SCHOOLMONEYregister
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ผูกบัญชีรับแจ้งเตือน - SCHOOL MONEY</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+    <style>
+        :root {
+            --main-blue: #1e3a8a;
+            --success-green: #10b981;
+        }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+            background-attachment: fixed;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .register-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            width: 100%;
+            max-width: 420px;
+            border-radius: 24px;
+            padding: 35px 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            text-align: center;
+        }
+        
+        /* โลโก้ SCHOOL MONEY */
+        .school-logo {
+            width: 110px;
+            height: auto;
+            margin: 0 auto 15px;
+            display: block;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #111;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #444;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+        .profile-container {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 16px;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        .profile-avatar {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--main-blue);
+        }
+        .profile-info h4 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #222;
+        }
+        .profile-info p {
+            margin: 3px 0 0;
+            font-size: 12px;
+            color: var(--success-green);
+            font-weight: 500;
+        }
+        .form-group {
+            text-align: left;
+            margin-bottom: 25px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--main-blue);
+            margin-bottom: 8px;
+            padding-left: 4px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            font-family: 'Kanit', sans-serif;
+            font-size: 16px;
+            color: #111;
+            outline: none;
+            transition: all 0.3s;
+        }
+        .form-group input:focus {
+            border-color: var(--main-blue);
+            box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.15);
+        }
+        .btn-submit {
+            background: var(--main-blue);
+            color: white;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Kanit', sans-serif;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.25);
+        }
+        .btn-submit:hover {
+            background: #111827;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="register-card">
+        <img src="https://i.postimg.cc/pXs1ZhWw/Untitled-design.png" alt="SCHOOL MONEY" class="school-logo">
+        
+        <div class="title">ผูกบัญชี School Money</div>
+        <div class="subtitle">ระบบจะส่งแจ้งเตือนยอดค้างชำระรายเดือนและลิงก์ตรวจสอบสลิปตรงถึง LINE ของคุณ</div>
+
+        <div class="profile-container" id="profileContainer" style="display: none;">
+            <img src="" id="userAvatar" class="profile-avatar" alt="Profile">
+            <div class="profile-info">
+                <h4 id="userDisplayName">กำลังโหลด...</h4>
+                <p><i class="fas fa-check-circle"></i> บัญชีนี้ใช้รับแจ้งเตือน</p>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label><i class="fas fa-user-graduate"></i> ชื่อ-นามสกุล นักเรียน</label>
+            <input type="text" id="studentName" placeholder="ไม่ต้องมีคำนำหน้า (เช่น สมชาย รักเรียน)">
+        </div>
+
+        <button class="btn-submit" onclick="confirmLinkAccount()">
+            <i class="fas fa-link"></i> ยืนยันผูกบัญชีนักเรียน
+        </button>
+    </div>
+
+    <script>
+        // ========================================================
+        // ตั้งค่าระบบ (ดึงข้อมูลของคุณมาใส่ให้เรียบร้อยแล้ว)
+        // ========================================================
+        const LIFF_ID = '2010371447-RlnJRehs'; 
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx5P6zROncjUbRgHvp2K4yiUBDi8_UYVcABVOJphubhCn4Au7KFHK9rFNo3gYXft38/exec'; 
+        // ========================================================
+        
+        let currentUserId = "";
+
+        // เริ่มต้นระบบ LIFF เมื่อเปิดหน้าจอ
+        async function initLIFF() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                if (liff.isLoggedIn()) {
+                    loadLineProfile();
+                } else {
+                    liff.login(); // บังคับให้ล็อกอินผ่านไลน์
+                }
+            } catch (error) {
+                Swal.fire('ข้อแนะนำ', 'กรุณาเปิดลิงก์นี้ผ่านแอป LINE ในมือถือของคุณ', 'info');
+            }
+        }
+
+        // ดึงข้อมูลโปรไฟล์ผู้ใช้งานมาแสดงผล
+        async function loadLineProfile() {
+            const profile = await liff.getProfile();
+            currentUserId = profile.userId; 
+            
+            document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/150';
+            document.getElementById('userDisplayName').textContent = profile.displayName;
+            document.getElementById('profileContainer').style.display = 'flex';
+        }
+
+        // ฟังก์ชันทำงานเมื่อกดยืนยันผูกบัญชี
+        async function confirmLinkAccount() {
+            const nameInput = document.getElementById('studentName').value.trim();
+
+            if (!nameInput) {
+                return Swal.fire({ icon: 'warning', title: 'กรุณากรอกข้อมูล', text: 'กรุณาระบุชื่อ-นามสกุลของนักเรียนด้วยครับ', confirmButtonColor: '#1e3a8a' });
+            }
+
+            Swal.fire({
+                title: 'กำลังค้นหารายชื่อ...',
+                allowOutsideClick: false,
+                didOpen: () => Swal.showLoading()
+            });
+
+            try {
+                let response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'registerLine',
+                        lineId: currentUserId,
+                        studentName: nameInput
+                    })
+                });
+
+                let result = await response.json();
+
+                if (result.status === "success") {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ผูกบัญชีสำเร็จ!',
+                        text: result.message,
+                        confirmButtonColor: '#10b981'
+                    }).then(() => {
+                        liff.closeWindow(); 
+                    });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: result.message, confirmButtonColor: '#ef4444' });
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ฐานข้อมูลได้ กรุณาลองใหม่', confirmButtonColor: '#ef4444' });
+            }
+        }
+
+        window.onload = initLIFF;
+    </script>
+</body>
+</html>
