@@ -146,6 +146,16 @@
             background: #111827;
             transform: translateY(-1px);
         }
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 5px;
+            padding-left: 4px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -166,7 +176,8 @@
 
         <div class="form-group">
             <label><i class="fas fa-user-graduate"></i> ชื่อ-นามสกุล นักเรียน</label>
-            <input type="text" id="studentName" placeholder="ไม่ต้องมีคำนำหน้า (เช่น สมชาย รักเรียน)">
+            <input type="text" id="studentName" placeholder="ไม่ต้องมีคำนำหน้า (เช่น สมชาย รักเรียน)" autocomplete="off">
+            <div class="error-message" id="nameError">กรุณากรอกชื่อ-นามสกุลของนักเรียน</div>
         </div>
 
         <button class="btn-submit" onclick="confirmLinkAccount()">
@@ -183,54 +194,121 @@
         // ========================================================
         
         let currentUserId = "";
+        let isProcessing = false; // ป้องกันการกดซ้ำ
 
         // เริ่มต้นระบบ LIFF เมื่อเปิดหน้าจอ
         async function initLIFF() {
             try {
                 await liff.init({ liffId: LIFF_ID });
                 if (liff.isLoggedIn()) {
-                    loadLineProfile();
+                    await loadLineProfile();
                 } else {
                     liff.login(); // บังคับให้ล็อกอินผ่านไลน์
                 }
             } catch (error) {
-                Swal.fire('ข้อแนะนำ', 'กรุณาเปิดลิงก์นี้ผ่านแอป LINE ในมือถือของคุณ', 'info');
+                console.error('LIFF Error:', error);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'ข้อแนะนำ', 
+                    text: 'กรุณาเปิดลิงก์นี้ผ่านแอป LINE ในมือถือของคุณ',
+                    confirmButtonColor: '#1e3a8a'
+                });
             }
         }
 
         // ดึงข้อมูลโปรไฟล์ผู้ใช้งานมาแสดงผล
         async function loadLineProfile() {
-            const profile = await liff.getProfile();
-            currentUserId = profile.userId; 
-            
-            document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/150';
-            document.getElementById('userDisplayName').textContent = profile.displayName;
-            document.getElementById('profileContainer').style.display = 'flex';
+            try {
+                const profile = await liff.getProfile();
+                currentUserId = profile.userId; 
+                
+                document.getElementById('userAvatar').src = profile.pictureUrl || 'https://via.placeholder.com/150';
+                document.getElementById('userDisplayName').textContent = profile.displayName;
+                document.getElementById('profileContainer').style.display = 'flex';
+            } catch (error) {
+                console.error('Profile Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถโหลดโปรไฟล์ได้',
+                    text: 'กรุณาลองใหม่อีกครั้ง',
+                    confirmButtonColor: '#1e3a8a'
+                });
+            }
         }
 
         // ฟังก์ชันทำงานเมื่อกดยืนยันผูกบัญชี
         async function confirmLinkAccount() {
+            // ป้องกันการกดซ้ำ
+            if (isProcessing) return;
+            
             const nameInput = document.getElementById('studentName').value.trim();
+            const errorElement = document.getElementById('nameError');
 
+            // ซ่อนข้อความ error ก่อน
+            errorElement.style.display = 'none';
+
+            // ตรวจสอบว่ากรอกชื่อหรือไม่
             if (!nameInput) {
-                return Swal.fire({ icon: 'warning', title: 'กรุณากรอกข้อมูล', text: 'กรุณาระบุชื่อ-นามสกุลของนักเรียนด้วยครับ', confirmButtonColor: '#1e3a8a' });
+                errorElement.style.display = 'block';
+                document.getElementById('studentName').focus();
+                return;
             }
+
+            // ตรวจสอบความยาวของชื่อ
+            if (nameInput.length < 2) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ข้อมูลไม่ถูกต้อง',
+                    text: 'กรุณากรอกชื่อ-นามสกุลให้ถูกต้อง',
+                    confirmButtonColor: '#1e3a8a'
+                });
+                return;
+            }
+
+            // ตรวจสอบว่ามี LINE User ID หรือไม่
+            if (!currentUserId) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่พบข้อมูล LINE',
+                    text: 'กรุณาล็อกอิน LINE ใหม่อีกครั้ง',
+                    confirmButtonColor: '#1e3a8a'
+                }).then(() => {
+                    liff.login();
+                });
+                return;
+            }
+
+            // ตั้งค่ากำลังดำเนินการ
+            isProcessing = true;
+            const submitBtn = document.querySelector('.btn-submit');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังดำเนินการ...';
+            submitBtn.disabled = true;
 
             Swal.fire({
                 title: 'กำลังค้นหารายชื่อ...',
+                text: 'กรุณารอสักครู่',
                 allowOutsideClick: false,
+                allowEscapeKey: false,
                 didOpen: () => Swal.showLoading()
             });
 
             try {
                 let response = await fetch(WEB_APP_URL, {
                     method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify({
                         action: 'registerLine',
                         lineId: currentUserId,
                         studentName: nameInput
                     })
                 });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
 
                 let result = await response.json();
 
@@ -239,18 +317,57 @@
                         icon: 'success',
                         title: 'ผูกบัญชีสำเร็จ!',
                         text: result.message,
-                        confirmButtonColor: '#10b981'
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: 'ตกลง'
                     }).then(() => {
-                        liff.closeWindow(); 
+                        // ปิดหน้าต่าง LIFF หลังจากผูกบัญชีสำเร็จ
+                        if (liff.isInClient()) {
+                            liff.closeWindow();
+                        }
                     });
                 } else {
-                    Swal.fire({ icon: 'error', title: 'ไม่พบข้อมูล', text: result.message, confirmButtonColor: '#ef4444' });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ไม่พบข้อมูล',
+                        text: result.message || 'กรุณาตรวจสอบชื่อ-นามสกุลอีกครั้ง',
+                        confirmButtonColor: '#ef4444',
+                        confirmButtonText: 'ลองอีกครั้ง'
+                    });
+                    // เคลียร์ช่อง input เพื่อให้กรอกใหม่
+                    document.getElementById('studentName').value = '';
+                    document.getElementById('studentName').focus();
                 }
             } catch (error) {
-                Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ฐานข้อมูลได้ กรุณาลองใหม่', confirmButtonColor: '#ef4444' });
+                console.error('Fetch Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'การเชื่อมต่อผิดพลาด',
+                    text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ฐานข้อมูลได้ กรุณาลองใหม่ภายหลัง',
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'ตกลง'
+                });
+            } finally {
+                // คืนค่าปุ่ม submit
+                isProcessing = false;
+                submitBtn.innerHTML = originalBtnText;
+                submitBtn.disabled = false;
             }
         }
 
+        // เพิ่ม event listener สำหรับการกด Enter ในช่อง input
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.getElementById('studentName');
+            if (nameInput) {
+                nameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        confirmLinkAccount();
+                    }
+                });
+            }
+        });
+
+        // เริ่มต้นระบบเมื่อโหลดหน้าเว็บ
         window.onload = initLIFF;
     </script>
 </body>
